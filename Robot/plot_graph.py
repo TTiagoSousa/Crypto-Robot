@@ -6,7 +6,7 @@ from indicators.trend_indicatores.ewm import calculate_ewm
 from indicators.momentum_indicators.rsi import calculate_rsi
 from indicators.momentum_indicators.stochastic import calculate_stoch
 from indicators.pattern_recognition.calculate_engulfing import calculate_engulfing
-from indicators.pattern_recognition.calculate_shooting_star import calculate_shooting_star
+from indicators.pattern_recognition.calculate_star import calculate_star_patterns
 
 def plot_transactions(df, transactions, available_indicators):
     # Função interna para criar o gráfico com base nos indicadores selecionados
@@ -111,18 +111,38 @@ def plot_transactions(df, transactions, available_indicators):
                     row=1,
                     col=1,
                 )
-                
-            if 'SHOOTING_STAR' in selected_indicators:
-                shooting_stars = df_local[df_local['shooting_star'] == 100]
+            
+        # Adiciona padrões de estrelas (Morning Star / Evening Star)
+        if 'MORNING_STAR' in selected_indicators or 'EVENING_STAR' in selected_indicators:
+            df_local = calculate_star_patterns(df_local)  # Função para calcular os padrões Morning Star / Evening Star
+
+            # Plota Morning Star
+            if 'MORNING_STAR' in selected_indicators:
+                morning_stars = df_local[df_local['morning_star'] == 100]
                 fig.add_trace(
                     go.Scatter(
-                        x=shooting_stars['timestamp'],
-                        y=shooting_stars['high'],
+                        x=morning_stars['timestamp'],
+                        y=morning_stars['low'],
                         mode='markers',
-                        marker=dict(color='orange', size=10, symbol='star'),
-                        name='Shooting Star',
+                        marker=dict(color='green', size=10, symbol='triangle-up'),
+                        name='Morning Star',
                     ),
-                    row=1,
+                    row=num_rows,
+                    col=1,
+                )
+
+            # Plota Evening Star
+            if 'EVENING_STAR' in selected_indicators:
+                evening_stars = df_local[df_local['evening_star'] == -100]
+                fig.add_trace(
+                    go.Scatter(
+                        x=evening_stars['timestamp'],
+                        y=evening_stars['high'],
+                        mode='markers',
+                        marker=dict(color='red', size=10, symbol='triangle-down'),
+                        name='Evening Star',
+                    ),
+                    row=num_rows,
                     col=1,
                 )
 

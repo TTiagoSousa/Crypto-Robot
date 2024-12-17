@@ -66,7 +66,7 @@ def development_1(start_date, end_date, time_frame, pair_1, capital, fees):
         if not open_trade:
             if current_day in [3, 4, 5]:
                 continue      
-            if sub_df['close'].iloc[-2] > sub_df['ewm200'].iloc[-2]:
+            if sub_df['close'].iloc[-2] > sub_df['ewm90'].iloc[-2]:
                 if sub_df['close'].iloc[-2] > sub_df['ewm21'].iloc[-2]:
                     if sub_df['rsi'].iloc[-2] <= 30 or sub_df['rsi'].iloc[-2] >= 70:
                         if sub_df['high'].iloc[-1] > sub_df['high'].iloc[-2]:

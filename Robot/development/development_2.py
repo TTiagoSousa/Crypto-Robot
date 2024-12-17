@@ -14,6 +14,7 @@ from utils.summarys.generate_annual_summary import generate_annual_summary
 from utils.summarys.generate_monthly_summary import generate_monthly_summary
 from plot_graph import plot_transactions
 from indicators.pattern_recognition.calculate_shooting_star import calculate_shooting_star
+from indicators.pattern_recognition.calculate_star import calculate_star_patterns
 
 def development_2(start_date, end_date, time_frame, pair_1, capital, fees):
     
@@ -35,47 +36,58 @@ def development_2(start_date, end_date, time_frame, pair_1, capital, fees):
     transactions = []
     trade_type = None
     
+    morning_star_count = 0
+    evening_star_count = 0
+
+    
     df = calculate_ewm(df, ema_lengths=[9, 21, 90, 200])
     df = calculate_rsi(df)
     df = calculate_engulfing(df)
     df = calculate_stoch(df)
     df = calculate_adx(df)
     df = calculate_shooting_star(df)
+    df = calculate_star_patterns(df)
+    
+    total_length = len(df)
+    print("Starting simulations...")
     
     for i in range(1000, len(df)):
+        
+        current_day = df['timestamp'].iloc[i].weekday()
+        progress = ((i - 1000) / (total_length - 1000)) * 100
+        print(f"Simulation progress: {progress:.2f}% complete", end='\r')
+        
         if i + 9 >= len(df):
             break
         
         sub_df = df.iloc[:i]
         
+        if sub_df['evening_star'].iloc[-2] == -100:
+            evening_star_count += 1
+        
         if not open_trade:
-            if sub_df['timestamp'].iloc[-1].weekday() in [5, 6]:
-                continue
-            # Lógica para abrir posição LONG
-            elif sub_df['engulfing'].iloc[-2] == 100:
-                engulfing_high = sub_df['high'].iloc[-2]
-                if sub_df['rsi'].iloc[-2] <=30 or sub_df['rsi'].iloc[-2] >=70:
-                    if sub_df['high'].iloc[-1] > engulfing_high:
-                        open_trade = True
-                        trade_type = 'long'
-                        count_transactions += 1
-                        open_value = sub_df['high'].iloc[-2]
-                        open_date = sub_df['timestamp'].iloc[-1]
-                        stop_value = min(sub_df['low'].iloc[-30:-1])
-                        stop_gain = open_value * (1 + stop_profit_long)
 
-            # Lógica para abrir posição SHORT
-            if sub_df['engulfing'].iloc[-2] == -100:
-                engulfing_low = sub_df['low'].iloc[-2]
-                if sub_df['rsi'].iloc[-2] <=30 or sub_df['rsi'].iloc[-2] >=70:
-                    if sub_df['low'].iloc[-1] < engulfing_low:
-                        open_trade = True
-                        trade_type = 'short'
-                        count_transactions += 1
-                        open_value = sub_df['low'].iloc[-2]
-                        open_date = sub_df['timestamp'].iloc[-1]
-                        stop_value = max(sub_df['high'].iloc[-30:-1])
-                        stop_gain = open_value * (1 - stop_profit_short)
+            if sub_df['morning_star'].iloc[-2] == 100:
+                morning_star_high = sub_df['high'].iloc[-2]
+                if sub_df['high'].iloc[-1] > morning_star_high:
+                    open_trade = True
+                    trade_type = 'long'
+                    count_transactions += 1
+                    open_value = morning_star_high
+                    open_date = sub_df['timestamp'].iloc[-1]
+                    stop_value = min(sub_df['low'].iloc[-10:-1])
+                    stop_gain = open_value * (1 + stop_profit_long)
+
+            if sub_df['evening_star'].iloc[-2] == -100:
+                evening_star_low = sub_df['low'].iloc[-2]
+                if sub_df['low'].iloc[-1] < evening_star_low:
+                    open_trade = True
+                    trade_type = 'short'
+                    count_transactions += 1
+                    open_value = evening_star_low
+                    open_date = sub_df['timestamp'].iloc[-1]
+                    stop_value = max(sub_df['high'].iloc[-10:-1])
+                    stop_gain = open_value * (1 - stop_profit_short)
         
         else:
             
@@ -170,7 +182,6 @@ def development_2(start_date, end_date, time_frame, pair_1, capital, fees):
                     }
                     transactions.append(transaction)
                 
-                
     base_tests_dir = os.path.join(os.getcwd(), "Tests")
     folder_path = save_transactions(transactions, base_tests_dir, StartTime)  # Obter caminho da pasta para salvar resumo
     
@@ -183,5 +194,5 @@ def development_2(start_date, end_date, time_frame, pair_1, capital, fees):
     save_annual_summary(annual_summary, folder_path, StartTime)
     save_monthly_summary(monthly_summary, folder_path, StartTime)
     
-    # fig = plot_transactions(df, transactions, available_indicators=['ENGULFING_BULLISH'])
+    # fig = plot_transactions(df, transactions, available_indicators=['EVENING_STAR'])
     # fig.show()
